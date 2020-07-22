@@ -1,0 +1,145 @@
+CREATE DATABASE "Wave's"
+WITH 
+OWNER = postgres
+ENCODING = 'UTF8'
+CONNECTION LIMIT = -1;
+
+
+\c guru99
+
+
+CREATE TABLE users (
+u_id integer PRIMARY KEY,
+name text NOT NULL,
+mobile text NOT NULL,
+wallet_id integer NOT NULL,
+when_created timestamp without time zone NOT NULL-- more stuff :));
+
+CREATE TABLE transfers (
+transfer_id integer PRIMARY KEY,
+u_id integer NOT NULL,
+source_wallet_id integer NOT NULL,
+dest_wallet_id integer NOT NULL,
+send_amount_currency text NOT NULL,
+send_amount_scalar numeric NOT NULL,
+receive_amount_currency text NOT NULL,
+receive_amount_scalar numeric NOT NULL,
+kind text NOT NULL,
+dest_mobile text,
+dest_merchant_id integer,
+when_created timestamp without time zone NOT NULL-- more stuff :));
+
+CREATE TABLE agents (
+agent_id integer PRIMARY KEY,
+name text,country text NOT NULL,
+region text,
+city text,
+subcity text,
+when_created timestamp without time zone NOT NULL-- more stuff :));
+
+CREATE TABLE agent_transactions (
+atx_id integer PRIMARY KEY,
+u_id integer NOT NULL,
+agent_id integer NOT NULL,
+amount numeric NOT NULL,
+fee_amount_scalar numeric NOT NULL,
+when_created timestamp without time zone NOT NULL-- more stuff :));
+
+CREATE TABLE wallets (
+wallet_id integer PRIMARY KEY,
+currency text NOT NULL,ledger_location text NOT NULL,
+when_created timestamp without time zone NOT NULL-- more stuff :));
+
+QUERIES
+
+QUESTION 1
+SELECT count(u_id) 
+FROM public.users;
+
+QUESTION 2
+SELECT count(u_id) 
+FROM public.transfers 
+WHERE send_amount_currency = 'CFA';
+
+QUESTION 3
+SELECT COUNT(DISTINCT u_id) 
+FROM public.transfers 
+WHERE send_amount_currency = 'CFA';
+
+QUESTION 4
+SELECT COUNT(atx_id)  
+FROM public.agent_transactions  
+WHERE EXTRACT (YEAR FROM when_created) = 2018  
+GROUP BY EXTRACT (MONTH FROM when_created);
+
+QUESTION 5
+NOTES
+For this question I couldn't create one query code so i broke it down into simpler bits. 
+I created a view will total deposits and withdrawals for each agent_id. 
+Then I created another view where I subtracted deposits from withdraws to create a new column agent net_transactions. 
+Then I queried the view to count positive net_trasctions which will represent net depositor and one to query negative net_transactions which will be net withdraws.
+
+CREATE OR REPLACE VIEW agent_total_expense AS
+SELECT agent_id,
+       SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) AS sum_of_deposits,
+       SUM(CASE WHEN amount < 0 THEN -amount ELSE 0 END) AS sum_of_withdrawals
+FROM public.agent_transactions
+WHERE when_created BETWEEN now() - interval '7 days' AND now()
+GROUP BY agent_id;
+
+CREATE OR REPLACE VIEW net_transactions AS
+SELECT agent_id,
+sum_of_deposits - sum_of_withdrawals AS net_trans
+FROM agent_total_expense;
+
+SELECT COUNT(agent_id)
+FROM net_transactions
+WHERE net_trans >= 0; // CHANGE THE SIGN TO GREATER THAN OR LESS THAN TO GET NET DEPOSITORS OR NET WITHDRAWERS
+
+QUESTION 6
+CREATE OR REPLACE VIEW atx_volume_city_summary AS 
+SELECT COUNT(agent_transactions.agent_id)
+FROM public.agent_transactions
+INNER JOIN public.agents
+ON agent_transactions.agent_id = agents.agent_id
+WHERE agent_transactions.when_created BETWEEN now() - interval '7 days' AND now()
+GROUP BY city;
+
+QUESTION 7
+CREATE OR REPLACE VIEW atx_volume_city_summary AS 
+SELECT COUNT(agent_transactions.agent_id)
+FROM public.agent_transactions
+INNER JOIN public.agents
+ON agent_transactions.agent_id = agents.agent_id
+WHERE agent_transactions.when_created BETWEEN now() - interval '7 days' AND now()
+GROUP BY country, city;
+
+QUESTION 8
+CREATE OR REPLACE VIEW send_volume_by_country_and_kind AS 
+SELECT SUM(send_amount_scalar)
+FROM public.transfers
+INNER JOIN public.wallets
+ON source_wallet_id = wallet_id
+WHERE transfers.when_created 
+BETWEEN now() - interval '7 days' AND now()
+GROUP BY ledger_location , kind;
+
+QUESTION 9
+CREATE OR REPLACE VIEW send_volume_by_country_and_kind_with_Count AS 
+SELECT SUM(send_amount_scalar),
+COUNT(DISTINCT u_id) AS number_of_unique_senders,
+COUNT(transfer_id) AS transaction_count
+FROM public.transfers
+INNER JOIN public.wallets
+ON source_wallet_id = wallet_id
+WHERE transfers.when_created 
+BETWEEN now() - interval '7 days' AND now()
+GROUP BY ledger_location , kind;
+
+Question 10
+SELECT source_wallet_id, SUM(send_amount_scalar)
+FROM public.transfers
+WHERE  transfers.send_amount_currency = 'CFA' AND transfers.when_created 
+BETWEEN now() - interval '1 month' AND now()
+GROUP BY source_wallet_id
+HAVING SUM(send_amount_scalar) > 10000000
