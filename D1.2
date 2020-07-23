@@ -97,17 +97,47 @@ FROM net_transactions
 WHERE net_trans >= 0; // CHANGE THE SIGN TO GREATER THAN OR LESS THAN TO GET NET DEPOSITORS OR NET WITHDRAWERS
 
 QUESTION 6
+// NUMBER OF TRANSFER
 CREATE OR REPLACE VIEW atx_volume_city_summary AS 
-SELECT COUNT(agent_transactions.agent_id)
+SELECT 
+city, 
+COUNT(agent_transactions.agent_id)
 FROM public.agent_transactions
 INNER JOIN public.agents
 ON agent_transactions.agent_id = agents.agent_id
 WHERE agent_transactions.when_created BETWEEN now() - interval '7 days' AND now()
 GROUP BY city;
 
+// AMOUNT TRANSFERRED
+CREATE OR REPLACE VIEW atx_volume_city_summary AS
+SELECT city,
+SUM(agent_transactions.amount)
+FROM public.agent_transactions
+INNER JOIN public.agents
+ON agent_transactions.agent_id = agents.agent_id
+WHERE agent_transactions.when_created BETWEEN now() - interval '7 days' AND now()
+GROUP BY city;
+
+
 QUESTION 7
+// NUMBER OF TRANSFER
 CREATE OR REPLACE VIEW atx_volume_city_summary AS 
-SELECT COUNT(agent_transactions.agent_id)
+SELECT
+country,
+city,
+COUNT(agent_transactions.agent_id)
+FROM public.agent_transactions
+INNER JOIN public.agents
+ON agent_transactions.agent_id = agents.agent_id
+WHERE agent_transactions.when_created BETWEEN now() - interval '7 days' AND now()
+GROUP BY country, city;
+
+// AMOUNT TRANSFERRED
+CREATE OR REPLACE VIEW atx_volume_city_summary AS 
+SELECT 
+country,
+city,
+SUM(agent_transactions.amount)
 FROM public.agent_transactions
 INNER JOIN public.agents
 ON agent_transactions.agent_id = agents.agent_id
@@ -116,7 +146,10 @@ GROUP BY country, city;
 
 QUESTION 8
 CREATE OR REPLACE VIEW send_volume_by_country_and_kind AS 
-SELECT SUM(send_amount_scalar)
+SELECT 
+ledger_location,
+kind,
+SUM(send_amount_scalar)
 FROM public.transfers
 INNER JOIN public.wallets
 ON source_wallet_id = wallet_id
@@ -126,7 +159,10 @@ GROUP BY ledger_location , kind;
 
 QUESTION 9
 CREATE OR REPLACE VIEW send_volume_by_country_and_kind_with_Count AS 
-SELECT SUM(send_amount_scalar),
+SELECT 
+ledger_location,
+kind,
+SUM(send_amount_scalar),
 COUNT(DISTINCT u_id) AS number_of_unique_senders,
 COUNT(transfer_id) AS transaction_count
 FROM public.transfers
