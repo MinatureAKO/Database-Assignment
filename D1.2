@@ -27,29 +27,6 @@ receive_amount_scalar numeric NOT NULL,
 kind text NOT NULL,
 dest_mobile text,
 dest_merchant_id integer,
-when_created timestamp without time zone NOT NULL-- more stuff :));
-
-CREATE TABLE agents (
-agent_id integer PRIMARY KEY,
-name text,country text NOT NULL,
-region text,
-city text,
-subcity text,
-when_created timestamp without time zone NOT NULL-- more stuff :));
-
-CREATE TABLE agent_transactions (
-atx_id integer PRIMARY KEY,
-u_id integer NOT NULL,
-agent_id integer NOT NULL,
-amount numeric NOT NULL,
-fee_amount_scalar numeric NOT NULL,
-when_created timestamp without time zone NOT NULL-- more stuff :));
-
-CREATE TABLE wallets (
-wallet_id integer PRIMARY KEY,
-currency text NOT NULL,ledger_location text NOT NULL,
-when_created timestamp without time zone NOT NULL-- more stuff :));
-
 QUERIES
 
 QUESTION 1
@@ -67,10 +44,13 @@ FROM public.transfers
 WHERE send_amount_currency = 'CFA';
 
 QUESTION 4
-SELECT COUNT(atx_id)  
+SELECT to_char(when_created, 'Month') AS month,
+date_trunc('Month', when_created) AS time,
+COUNT(atx_id)
 FROM public.agent_transactions  
 WHERE EXTRACT (YEAR FROM when_created) = 2018  
-GROUP BY EXTRACT (MONTH FROM when_created);
+GROUP BY month, time
+ORDER BY time;
 
 QUESTION 5
 NOTES
