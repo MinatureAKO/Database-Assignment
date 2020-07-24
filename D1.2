@@ -53,28 +53,14 @@ GROUP BY month, time
 ORDER BY time;
 
 QUESTION 5
-NOTES
-For this question I couldn't create one query code so i broke it down into simpler bits. 
-I created a view will total deposits and withdrawals for each agent_id. 
-Then I created another view where I subtracted deposits from withdraws to create a new column agent net_transactions. 
-Then I queried the view to count positive net_trasctions which will represent net depositor and one to query negative net_transactions which will be net withdraws.
-
-CREATE OR REPLACE VIEW agent_total_expense AS
-SELECT agent_id,
-       SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) AS sum_of_deposits,
-       SUM(CASE WHEN amount < 0 THEN -amount ELSE 0 END) AS sum_of_withdrawals
-FROM public.agent_transactions
+SELECT agent_id, SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) AS withdrawal, 
+SUM(CASE WHEN amount < 0 THEN -amount ELSE 0 END) AS deposit,
+CASE WHEN ((SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END)) > ((SUM(CASE WHEN amount < 0 then amount ELSE 0 END))) * -1) THEN 'withdrawer'
+ELSE 'depositer' END AS agent_status 
+FROM public.agent_transactions 
 WHERE when_created BETWEEN now() - interval '7 days' AND now()
 GROUP BY agent_id;
 
-CREATE OR REPLACE VIEW net_transactions AS
-SELECT agent_id,
-sum_of_deposits - sum_of_withdrawals AS net_trans
-FROM agent_total_expense;
-
-SELECT COUNT(agent_id)
-FROM net_transactions
-WHERE net_trans >= 0; // CHANGE THE SIGN TO GREATER THAN OR LESS THAN TO GET NET DEPOSITORS OR NET WITHDRAWERS
 
 QUESTION 6
 // NUMBER OF TRANSFER
